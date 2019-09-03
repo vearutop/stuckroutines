@@ -7,6 +7,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -15,6 +17,7 @@ func main() {
 	url := flag.String("url", "", "Full URL to /debug/pprof/goroutine?debug=2")
 	n := flag.Int("iterations", 2, "How many reports to collect to find persisting routines")
 	delay := flag.Duration("delay", 5*time.Second, "Delay between report collections")
+	noGroup := flag.Bool("no-group", false, "Do not group goroutines by stack trace")
 
 	flag.Parse()
 
@@ -25,7 +28,7 @@ func main() {
 	}
 
 	for i := 0; i < *n; i++ {
-		println("Collecting report...")
+		println("Collecting report ...")
 		resp, err := http.DefaultClient.Get(*url)
 		if err != nil {
 			log.Fatal(err.Error())
@@ -38,7 +41,7 @@ func main() {
 		}
 
 		if i < *n-1 {
-			println("Sleeping...")
+			println("Sleeping", delay.String(), "...")
 			time.Sleep(*delay)
 		}
 	}
@@ -48,23 +51,52 @@ func main() {
 			maxCount = g.count
 		}
 	}
-	removed := 0
+	temporary := 0
+	persistent := 0
+
+	traceGroups := make(map[string]int)
+	output := make([]goroutine, 0, len(result))
 	for _, g := range result {
 		if g.count == maxCount {
-			fmt.Println(g.id, g.status, "\n", g.trace)
+			persistent++
+
+			if *noGroup {
+				output = append(output, g)
+			} else {
+				if _, ok := traceGroups[g.traceFiltered]; !ok {
+					output = append(output, g)
+				}
+			}
+			traceGroups[g.traceFiltered]++
 		} else {
-			removed++
+			temporary++
 		}
 	}
-	println(removed, "temporary goroutine(s) removed from report")
+
+	println(persistent, "persistent goroutine(s) found")
+	println(temporary, "temporary goroutine(s) ignored")
+
+	sort.Slice(output, func(i, j int) bool {
+		return output[i].traceFiltered < output[j].traceFiltered
+	})
+
+	for _, g := range output {
+		fmt.Println(traceGroups[g.traceFiltered], "goroutine(s) with similar back trace path")
+		fmt.Println(g.id, g.status)
+		fmt.Println(g.trace)
+	}
+
 }
 
 type goroutine struct {
-	id     string
-	count  int
-	status string
-	trace  string
+	id            string
+	count         int
+	status        string
+	trace         string
+	traceFiltered string
 }
+
+var zeroX = regexp.MustCompile(`0x[a-z\d]+`)
 
 func parseGoroutines(reader io.Reader, result map[string]goroutine) {
 	g := goroutine{}
@@ -83,6 +115,7 @@ func parseGoroutines(reader io.Reader, result map[string]goroutine) {
 			if gf, ok := result[g.id]; ok {
 				g.count += gf.count
 			}
+			g.traceFiltered = zeroX.ReplaceAllString(g.trace, `0x?`)
 			result[g.id] = g
 		} else {
 			g.trace += line + "\n"

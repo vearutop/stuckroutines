@@ -18,128 +18,106 @@ Usage of stuckroutines:
         Delay between report collections (default 5s)
   -iterations int
         How many reports to collect to find persisting routines (default 2)
+  -no-group
+        Do not group goroutines by stack trace
   -url string
         Full URL to /debug/pprof/goroutine?debug=2
 ```
 
-Assuming your app is exposing `pprof` handlers at `http://127.0.0.1:8000/debug/pprof`:
+Assuming your app is exposing `pprof` handlers at `http://my-service.acme.io/debug/pprof`:
 ```
-stuckroutines -url http://127.0.0.1:8000/debug/pprof/goroutine?debug=2 > report.txt
+stuckroutines -url http://my-service.acme.io/debug/pprof/goroutine?debug=2 > report.txt
 ```
 
 ```
-Collecting report...
-Sleeping...
-Collecting report...
+Collecting report ...
+Sleeping 5s ...
+Collecting report ...
+27 persistent goroutine(s) found
+312 temporary goroutine(s) ignored
 ```
 
 The report will only contain goroutines that have persisted between delayed iterations.
 
+List of goroutines is ordered by back trace path (with memory references removed) so it is diff-friendly.
+
 <details>
-  <summary>Sample `report.txt`</summary>
+  <summary>Sample report</summary>
 
 ```
-1 [chan receive, 2 minutes]: 
- github.com/acme/root-kit/pkg/http/server.(*Instance).Start(0xc0000b00c0, 0xc000561db8, 0x17f3640)
-	/Users/john.doe/dev/root-kit/pkg/http/server/server.go:69 +0x201
+10 goroutine(s) with similar back trace path
+73 [select, 30 minutes]:
+database/sql.(*DB).connectionOpener(0xc0001f2900, 0xf61260, 0xc000176cc0)
+	/usr/local/go/src/database/sql/sql.go:1000 +0xe8
+created by database/sql.OpenDB
+	/usr/local/go/src/database/sql/sql.go:670 +0x15e
+
+11 goroutine(s) with similar back trace path
+86 [select, 12 minutes]:
+database/sql.(*DB).connectionResetter(0xc0001f2d80, 0xf61260, 0xc000176e40)
+	/usr/local/go/src/database/sql/sql.go:1013 +0xfb
+created by database/sql.OpenDB
+	/usr/local/go/src/database/sql/sql.go:671 +0x194
+
+1 goroutine(s) with similar back trace path
+1 [select, 30 minutes]:
+github.com/acme/my-service/cmd.glob..func5.1(0x0, 0x0, 0xc00003c06a, 0x7, 0xc00003c1ab, 0x8, 0xc0005d2ab0, 0xd84c2b, 0x6, 0x0, ...)
+	/go/src/github.com/acme/my-service/cmd/web.go:189 +0x295
+reflect.Value.call(0xc4b420, 0xe496e0, 0x13, 0xd82085, 0x4, 0xc0003cbaa0, 0x1, 0x1, 0x1, 0xc00017f110, ...)
+	/usr/local/go/src/reflect/value.go:447 +0x461
+reflect.Value.Call(0xc4b420, 0xe496e0, 0x13, 0xc0003cbaa0, 0x1, 0x1, 0xc00014a880, 0xc0003cbaa0, 0x1)
+	/usr/local/go/src/reflect/value.go:308 +0xa4
+github.com/acme/my-service/vendor/go.uber.org/dig.(*Container).Invoke(0xc00014a880, 0xc4b420, 0xe496e0, 0x0, 0x0, 0x0, 0x4, 0x820d20)
+	/go/src/github.com/acme/my-service/vendor/go.uber.org/dig/dig.go:518 +0x3d8
+github.com/acme/my-service/cmd.glob..func5(0x15d6e40, 0x15fede0, 0x0, 0x0)
+	/go/src/github.com/acme/my-service/cmd/web.go:168 +0x5a
+github.com/acme/my-service/vendor/github.com/spf13/cobra.(*Command).execute(0x15d6e40, 0x15fede0, 0x0, 0x0, 0x15d6e40, 0x15fede0)
+	/go/src/github.com/acme/my-service/vendor/github.com/spf13/cobra/command.go:766 +0x2ae
+github.com/acme/my-service/vendor/github.com/spf13/cobra.(*Command).ExecuteC(0x15d6980, 0x1, 0x0, 0x0)
+	/go/src/github.com/acme/my-service/vendor/github.com/spf13/cobra/command.go:850 +0x2fc
+github.com/acme/my-service/vendor/github.com/spf13/cobra.(*Command).Execute(...)
+	/go/src/github.com/acme/my-service/vendor/github.com/spf13/cobra/command.go:800
+github.com/acme/my-service/cmd.Execute()
+	/go/src/github.com/acme/my-service/cmd/root.go:12 +0x32
 main.main()
-	/Users/john.doe/dev/root-kit/examples/basic-service/cmd/basic-service/main.go:38 +0x97e
+	/go/src/github.com/acme/my-service/main.go:6 +0x20
 
-20 [select]: 
- go.opencensus.io/stats/view.(*worker).start(0xc000304230)
-	/Users/john.doe/go/pkg/mod/go.opencensus.io@v0.22.0/stats/view/worker.go:154 +0x100
-created by go.opencensus.io/stats/view.init.0
-	/Users/john.doe/go/pkg/mod/go.opencensus.io@v0.22.0/stats/view/worker.go:32 +0x57
+1 goroutine(s) with similar back trace path
+99 [chan receive, 30 minutes]:
+github.com/acme/my-service/pkg/config.EnableGracefulShutdown.func1.1(0x0, 0x0, 0xf61260, 0xc000176700, 0xc00015f550, 0xc000149ad0, 0xf73740, 0xc00014e0a0, 0xc000153800, 0xc000153800, ...)
+	/go/src/github.com/acme/my-service/pkg/config/router.go:168 +0x173
+created by github.com/acme/my-service/pkg/config.EnableGracefulShutdown.func1
+	/go/src/github.com/acme/my-service/pkg/config/router.go:163 +0x127
 
-51 [syscall, 2 minutes]: 
- os/signal.signal_recv(0x0)
-	/usr/local/Cellar/go/1.12.6/libexec/src/runtime/sigqueue.go:139 +0x9f
+1 goroutine(s) with similar back trace path
+56 [select, 30 minutes]:
+github.com/acme/my-service/vendor/github.com/acme/root-kit/pkg/cache.(*Memory).cleaner(0xc0001b6140)
+	/go/src/github.com/acme/my-service/vendor/github.com/acme/root-kit/pkg/cache/memory.go:208 +0xf5
+created by github.com/acme/my-service/vendor/github.com/acme/root-kit/pkg/cache.NewMemory
+	/go/src/github.com/acme/my-service/vendor/github.com/acme/root-kit/pkg/cache/memory.go:99 +0x210
+
+1 goroutine(s) with similar back trace path
+116 [select]:
+github.com/acme/my-service/vendor/github.com/streadway/amqp.(*Connection).heartbeater(0xc0000d4b40, 0x2540be400, 0xc00018e4e0)
+	/go/src/github.com/acme/my-service/vendor/github.com/streadway/amqp/connection.go:551 +0x187
+created by github.com/acme/my-service/vendor/github.com/streadway/amqp.(*Connection).openTune
+	/go/src/github.com/acme/my-service/vendor/github.com/streadway/amqp/connection.go:782 +0x482
+
+1 goroutine(s) with similar back trace path
+35 [select]:
+github.com/acme/my-service/vendor/go.opencensus.io/stats/view.(*worker).start(0xc0001b41e0)
+	/go/src/github.com/acme/my-service/vendor/go.opencensus.io/stats/view/worker.go:154 +0x100
+created by github.com/acme/my-service/vendor/go.opencensus.io/stats/view.init.0
+	/go/src/github.com/acme/my-service/vendor/go.opencensus.io/stats/view/worker.go:32 +0x57
+
+1 goroutine(s) with similar back trace path
+36 [syscall, 30 minutes]:
+os/signal.signal_recv(0x0)
+	/usr/local/go/src/runtime/sigqueue.go:139 +0x9c
 os/signal.loop()
-	/usr/local/Cellar/go/1.12.6/libexec/src/os/signal/signal_unix.go:23 +0x22
+	/usr/local/go/src/os/signal/signal_unix.go:23 +0x22
 created by os/signal.init.0
-	/usr/local/Cellar/go/1.12.6/libexec/src/os/signal/signal_unix.go:29 +0x41
-
-56 [IO wait]: 
- internal/poll.runtime_pollWait(0x1f24ea8, 0x72, 0x0)
-	/usr/local/Cellar/go/1.12.6/libexec/src/runtime/netpoll.go:182 +0x56
-internal/poll.(*pollDesc).wait(0xc00029a898, 0x72, 0x0, 0x0, 0x1693ae5)
-	/usr/local/Cellar/go/1.12.6/libexec/src/internal/poll/fd_poll_runtime.go:87 +0x9b
-internal/poll.(*pollDesc).waitRead(...)
-	/usr/local/Cellar/go/1.12.6/libexec/src/internal/poll/fd_poll_runtime.go:92
-internal/poll.(*FD).Accept(0xc00029a880, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0)
-	/usr/local/Cellar/go/1.12.6/libexec/src/internal/poll/fd_unix.go:384 +0x1ba
-net.(*netFD).accept(0xc00029a880, 0x52edd4b4, 0x6c152edd4b4, 0x100000001)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/fd_unix.go:238 +0x42
-net.(*TCPListener).accept(0xc000298008, 0x5d6e600e, 0xc0004cae60, 0x10b5ec6)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/tcpsock_posix.go:139 +0x32
-net.(*TCPListener).Accept(0xc000298008, 0xc0004caeb0, 0x18, 0xc00008c780, 0x130d974)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/tcpsock.go:260 +0x48
-net/http.(*Server).Serve(0xc0002c0000, 0x17fd980, 0xc000298008, 0x0, 0x0)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/server.go:2859 +0x22d
-github.com/acme/root-kit/pkg/http/server.(*Instance).Start.func1(0xc0002c0000, 0x17fd980, 0xc000298008, 0xc0000b00c0)
-	/Users/john.doe/dev/root-kit/pkg/http/server/server.go:53 +0x43
-created by github.com/acme/root-kit/pkg/http/server.(*Instance).Start
-	/Users/john.doe/dev/root-kit/pkg/http/server/server.go:52 +0x1b7
-
-55 [chan receive, 2 minutes]: 
- github.com/acme/root-kit/pkg/http/server.(*Instance).handleServerShutdown.func1(0xc000030300, 0xc0000b00c0, 0xc0002c0000)
-	/Users/john.doe/dev/root-kit/pkg/http/server/server.go:85 +0x38
-created by github.com/acme/root-kit/pkg/http/server.(*Instance).handleServerShutdown
-	/Users/john.doe/dev/root-kit/pkg/http/server/server.go:84 +0xdc
-
-62 [running]: 
- runtime/pprof.writeGoroutineStacks(0x17f3020, 0xc0004220e0, 0x0, 0x0)
-	/usr/local/Cellar/go/1.12.6/libexec/src/runtime/pprof/pprof.go:679 +0x9d
-runtime/pprof.writeGoroutine(0x17f3020, 0xc0004220e0, 0x2, 0x100d7e9, 0xc0002b0160)
-	/usr/local/Cellar/go/1.12.6/libexec/src/runtime/pprof/pprof.go:668 +0x44
-runtime/pprof.(*Profile).WriteTo(0x1c54aa0, 0x17f3020, 0xc0004220e0, 0x2, 0xc0004220e0, 0xc0000befc0)
-	/usr/local/Cellar/go/1.12.6/libexec/src/runtime/pprof/pprof.go:329 +0x390
-net/http/pprof.handler.ServeHTTP(0xc00048c221, 0x9, 0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/pprof/pprof.go:245 +0x356
-net/http/pprof.Index(0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/pprof/pprof.go:268 +0x6f7
-net/http.HandlerFunc.ServeHTTP(0x1748278, 0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/server.go:1995 +0x44
-net/http.(*ServeMux).ServeHTTP(0xc000470840, 0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/server.go:2375 +0x1d6
-github.com/go-chi/chi.(*Mux).Mount.func1(0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/Users/john.doe/go/pkg/mod/github.com/go-chi/chi@v4.0.2+incompatible/mux.go:292 +0x127
-net/http.HandlerFunc.ServeHTTP(0xc0001de540, 0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/server.go:1995 +0x44
-github.com/go-chi/chi.(*Mux).routeHTTP(0xc0000db020, 0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/Users/john.doe/go/pkg/mod/github.com/go-chi/chi@v4.0.2+incompatible/mux.go:425 +0x27f
-net/http.HandlerFunc.ServeHTTP(0xc000020de0, 0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/server.go:1995 +0x44
-github.com/go-chi/chi.(*Mux).ServeHTTP(0xc0000db020, 0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/Users/john.doe/go/pkg/mod/github.com/go-chi/chi@v4.0.2+incompatible/mux.go:70 +0x451
-github.com/go-chi/chi.(*Mux).Mount.func1(0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/Users/john.doe/go/pkg/mod/github.com/go-chi/chi@v4.0.2+incompatible/mux.go:292 +0x127
-net/http.HandlerFunc.ServeHTTP(0xc0001de660, 0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/server.go:1995 +0x44
-github.com/go-chi/chi.(*Mux).routeHTTP(0xc0000da180, 0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/Users/john.doe/go/pkg/mod/github.com/go-chi/chi@v4.0.2+incompatible/mux.go:425 +0x27f
-net/http.HandlerFunc.ServeHTTP(0xc000020680, 0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/server.go:1995 +0x44
-github.com/go-chi/chi/middleware.RealIP.func1(0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/Users/john.doe/go/pkg/mod/github.com/go-chi/chi@v4.0.2+incompatible/middleware/realip.go:34 +0x99
-net/http.HandlerFunc.ServeHTTP(0xc0001de120, 0x17fdc40, 0xc0004220e0, 0xc00045a400)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/server.go:1995 +0x44
-github.com/go-chi/render.SetContentType.func1.1(0x17fdc40, 0xc0004220e0, 0xc00045a300)
-	/Users/john.doe/go/pkg/mod/github.com/go-chi/render@v1.0.1/content_type.go:52 +0x18b
-net/http.HandlerFunc.ServeHTTP(0xc0001de140, 0x17fdc40, 0xc0004220e0, 0xc00045a300)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/server.go:1995 +0x44
-github.com/acme/root-kit/pkg/http/router.(*PanicRecoverer).Middleware.func1(0x17fdc40, 0xc0004220e0, 0xc00045a300)
-	/Users/john.doe/dev/root-kit/pkg/http/router/panic.go:30 +0xa8
-net/http.HandlerFunc.ServeHTTP(0xc0001de160, 0x17fdc40, 0xc0004220e0, 0xc00045a300)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/server.go:1995 +0x44
-github.com/go-chi/chi.(*Mux).ServeHTTP(0xc0000da180, 0x17fdc40, 0xc0004220e0, 0xc00045a200)
-	/Users/john.doe/go/pkg/mod/github.com/go-chi/chi@v4.0.2+incompatible/mux.go:82 +0x294
-net/http.serverHandler.ServeHTTP(0xc0002c0000, 0x17fdc40, 0xc0004220e0, 0xc00045a200)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/server.go:2774 +0xa8
-net/http.(*conn).serve(0xc0001e7220, 0x17ff780, 0xc0000ce100)
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/server.go:1878 +0x851
-created by net/http.(*Server).Serve
-	/usr/local/Cellar/go/1.12.6/libexec/src/net/http/server.go:2884 +0x2f4
+	/usr/local/go/src/os/signal/signal_unix.go:29 +0x41
 
 ```
 </details>
