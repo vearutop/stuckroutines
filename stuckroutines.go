@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -18,44 +19,71 @@ func main() {
 	n := flag.Int("iterations", 2, "How many reports to collect to find persisting routines")
 	delay := flag.Duration("delay", 5*time.Second, "Delay between report collections")
 	noGroup := flag.Bool("no-group", false, "Do not group goroutines by stack trace")
+	flag.Args()
 
 	flag.Parse()
 
 	result := make(map[string]goroutine)
-	if *url == "" {
+
+	if *url == "" && flag.NArg() == 0 {
+		fmt.Println("Stuckroutines requires either a URL or a list of files obtained from /pprof/goroutine?debug=2")
+		fmt.Println("Usage: stuckroutines [options] [...report files]")
+
 		flag.Usage()
+
 		return
 	}
 
-	for i := 0; i < *n; i++ {
-		println("Collecting report ...")
-		resp, err := http.DefaultClient.Get(*url)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
+	if *url != "" {
+		for i := 0; i < *n; i++ {
+			println("Collecting report ...")
 
-		parseGoroutines(resp.Body, result)
-		err = resp.Body.Close()
-		if err != nil {
-			log.Fatal(err.Error())
-		}
+			resp, err := http.Get(*url)
+			if err != nil {
+				log.Fatal(err.Error())
+			}
 
-		if i < *n-1 {
-			println("Sleeping", delay.String(), "...")
-			time.Sleep(*delay)
+			parseGoroutines(resp.Body, result)
+
+			err = resp.Body.Close()
+			if err != nil {
+				log.Fatal(err.Error())
+			}
+
+			if i < *n-1 {
+				println("Sleeping", delay.String(), "...")
+				time.Sleep(*delay)
+			}
 		}
 	}
+
+	for _, fn := range flag.Args() {
+		f, err := os.Open(fn)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		parseGoroutines(f, result)
+
+		err = f.Close()
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+	}
+
+	temporary := 0
+	persistent := 0
 	maxCount := 0
+
 	for _, g := range result {
 		if g.count > maxCount {
 			maxCount = g.count
 		}
 	}
-	temporary := 0
-	persistent := 0
 
 	traceGroups := make(map[string]int)
 	output := make([]goroutine, 0, len(result))
+
 	for _, g := range result {
 		if g.count == maxCount {
 			persistent++
@@ -85,7 +113,6 @@ func main() {
 		fmt.Println(g.id, g.status)
 		fmt.Println(g.trace)
 	}
-
 }
 
 type goroutine struct {
@@ -105,19 +132,21 @@ func parseGoroutines(reader io.Reader, result map[string]goroutine) {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		if strings.HasPrefix(line, "goroutine") {
+		switch {
+		case strings.HasPrefix(line, "goroutine"):
 			pieces := strings.SplitN(line, " ", 3)
 			g.count = 1
 			g.id = pieces[1]
 			g.status = pieces[2]
 			g.trace = ""
-		} else if len(line) == 0 {
+		case len(line) == 0:
 			if gf, ok := result[g.id]; ok {
 				g.count += gf.count
 			}
+
 			g.traceFiltered = zeroX.ReplaceAllString(g.trace, `0x?`)
 			result[g.id] = g
-		} else {
+		default:
 			g.trace += line + "\n"
 		}
 	}
