@@ -19,8 +19,6 @@ func main() {
 	n := flag.Int("iterations", 2, "How many reports to collect to find persisting routines")
 	delay := flag.Duration("delay", 5*time.Second, "Delay between report collections")
 	noGroup := flag.Bool("no-group", false, "Do not group goroutines by stack trace")
-	flag.Args()
-
 	flag.Parse()
 
 	result := make(map[string]goroutine)
@@ -38,14 +36,14 @@ func main() {
 		for i := 0; i < *n; i++ {
 			println("Collecting report ...")
 
-			resp, err := http.Get(*url)
-			if err != nil {
-				log.Fatal(err.Error())
-			}
+			resp, _ := http.Get(*url)
+			//if err != nil {
+			//	log.Fatal(err.Error())
+			//}
 
 			parseGoroutines(resp.Body, result)
 
-			err = resp.Body.Close()
+			err := resp.Body.Close()
 			if err != nil {
 				log.Fatal(err.Error())
 			}
