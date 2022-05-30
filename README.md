@@ -2,18 +2,30 @@
 
 A tool to retrieve long-running goroutines from pprof full goroutine stack dump that can help identifying stuck goroutines.
 
-## Installation
+## Install
 
 ```
-go get github.com/vearutop/stuckroutines
+go install github.com/vearutop/stuckroutines@latest
+$(go env GOPATH)/bin/stuckroutines --help
 ```
+
+Or (with `go1.15` or older)
+
+```
+go get -u github.com/vearutop/stuckroutines
+$(go env GOPATH)/bin/stuckroutines --help
+```
+
+Or download binary from [releases](https://github.com/vearutop/stuckroutines/releases).
 
 ## Usage 
 
 Make sure your app is instrumented with [net/pprof](https://golang.org/pkg/net/http/pprof/).
 
 ```
-Usage of stuckroutines:
+Stuckroutines requires either a URL or a list of files obtained from /pprof/goroutine?debug=2
+Usage: stuckroutines [options] [...report files]
+Usage of ./bin/stuckroutines:
   -delay duration
         Delay between report collections (default 5s)
   -iterations int
@@ -22,6 +34,8 @@ Usage of stuckroutines:
         Do not group goroutines by stack trace
   -url string
         Full URL to /debug/pprof/goroutine?debug=2
+  -version
+        Print version
 ```
 
 Assuming your app is exposing `pprof` handlers at `http://my-service.acme.io/debug/pprof`:
@@ -38,6 +52,11 @@ Collecting report ...
 ```
 
 The report will only contain goroutines that have persisted between delayed iterations.
+
+Alternatively if you already have downloaded goroutine dumps you can provide the files:
+```
+stuckroutines dump1.txt dump2.txt dump3.txt > report.txt
+```
 
 List of goroutines is ordered by back trace path (with memory references removed) so it is diff-friendly.
 
