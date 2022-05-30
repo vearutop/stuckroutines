@@ -76,7 +76,7 @@ func (r *res) fetch(n int, url string, delay time.Duration) {
 
 		resp, err := http.Get(url)
 		if err != nil {
-			println("Failed to get report:", err)
+			println("Failed to get report:", err.Error())
 			os.Exit(1)
 		}
 
@@ -84,7 +84,7 @@ func (r *res) fetch(n int, url string, delay time.Duration) {
 
 		err = resp.Body.Close()
 		if err != nil {
-			println("Failed to close response body:", err)
+			println("Failed to close response body:", err.Error())
 			os.Exit(1)
 		}
 
