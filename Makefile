@@ -1,4 +1,4 @@
-#GOLANGCI_LINT_VERSION := "v1.43.0" # Optional configuration to pinpoint golangci-lint version.
+#GOLANGCI_LINT_VERSION := "v1.46.2" # Optional configuration to pinpoint golangci-lint version.
 
 # The head of Makefile determines location of dev-go to include standard targets.
 GO ?= go
@@ -31,4 +31,6 @@ endif
 -include $(DEVGO_PATH)/makefiles/lint.mk
 -include $(DEVGO_PATH)/makefiles/reset-ci.mk
 -include $(DEVGO_PATH)/makefiles/build.mk
+-include $(DEVGO_PATH)/makefiles/release-assets.mk
+
 
