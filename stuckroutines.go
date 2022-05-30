@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/bool64/dev/version"
 	"io"
 	"log"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/bool64/dev/version"
 )
 
 func main() {
