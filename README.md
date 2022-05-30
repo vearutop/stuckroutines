@@ -39,6 +39,11 @@ Collecting report ...
 
 The report will only contain goroutines that have persisted between delayed iterations.
 
+Alternatively if you already have downloaded goroutine dumps you can provide the files:
+```
+stuckroutines dump1.txt dump2.txt dump3.txt > report.txt
+```
+
 List of goroutines is ordered by back trace path (with memory references removed) so it is diff-friendly.
 
 <details>

@@ -21,8 +21,6 @@ func main() {
 	noGroup := flag.Bool("no-group", false, "Do not group goroutines by stack trace")
 	flag.Parse()
 
-	result := make(map[string]goroutine)
-
 	if *url == "" && flag.NArg() == 0 {
 		fmt.Println("Stuckroutines requires either a URL or a list of files obtained from /pprof/goroutine?debug=2")
 		fmt.Println("Usage: stuckroutines [options] [...report files]")
@@ -32,85 +30,115 @@ func main() {
 		return
 	}
 
+	r := res{
+		result:  make(map[string]goroutine),
+		noGroup: *noGroup,
+	}
+
 	if *url != "" {
-		for i := 0; i < *n; i++ {
-			println("Collecting report ...")
-
-			resp, _ := http.Get(*url)
-			//if err != nil {
-			//	log.Fatal(err.Error())
-			//}
-
-			parseGoroutines(resp.Body, result)
-
-			err := resp.Body.Close()
-			if err != nil {
-				log.Fatal(err.Error())
-			}
-
-			if i < *n-1 {
-				println("Sleeping", delay.String(), "...")
-				time.Sleep(*delay)
-			}
-		}
+		r.fetch(*n, *url, *delay)
 	}
 
 	for _, fn := range flag.Args() {
-		f, err := os.Open(fn)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-
-		parseGoroutines(f, result)
-
-		err = f.Close()
-		if err != nil {
-			log.Fatal(err.Error())
-		}
+		r.load(fn)
 	}
 
-	temporary := 0
-	persistent := 0
-	maxCount := 0
+	r.count()
 
-	for _, g := range result {
-		if g.count > maxCount {
-			maxCount = g.count
-		}
-	}
+	println(r.persistent, "persistent goroutine(s) found")
+	println(r.temporary, "temporary goroutine(s) ignored")
 
-	traceGroups := make(map[string]int)
-	output := make([]goroutine, 0, len(result))
-
-	for _, g := range result {
-		if g.count == maxCount {
-			persistent++
-
-			if *noGroup {
-				output = append(output, g)
-			} else {
-				if _, ok := traceGroups[g.traceFiltered]; !ok {
-					output = append(output, g)
-				}
-			}
-			traceGroups[g.traceFiltered]++
-		} else {
-			temporary++
-		}
-	}
-
-	println(persistent, "persistent goroutine(s) found")
-	println(temporary, "temporary goroutine(s) ignored")
-
-	sort.Slice(output, func(i, j int) bool {
-		return output[i].traceFiltered < output[j].traceFiltered
-	})
-
-	for _, g := range output {
-		fmt.Println(traceGroups[g.traceFiltered], "goroutine(s) with similar back trace path")
+	for _, g := range r.output {
+		fmt.Println(r.traceGroups[g.traceFiltered], "goroutine(s) with similar back trace path")
 		fmt.Println(g.id, g.status)
 		fmt.Println(g.trace)
 	}
+}
+
+func (r *res) fetch(n int, url string, delay time.Duration) {
+	for i := 0; i < n; i++ {
+		println("Collecting report ...")
+
+		resp, err := http.Get(url)
+		if err != nil {
+			println("Failed to get report:", err)
+			os.Exit(1)
+		}
+
+		parseGoroutines(resp.Body, r.result)
+
+		err = resp.Body.Close()
+		if err != nil {
+			println("Failed to close response body:", err)
+			os.Exit(1)
+		}
+
+		if i < n-1 {
+			println("Sleeping", delay.String(), "...")
+			time.Sleep(delay)
+		}
+	}
+}
+
+func (r *res) load(fn string) {
+	f, err := os.Open(fn)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	parseGoroutines(f, r.result)
+
+	err = f.Close()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+}
+
+func (r *res) count() {
+	for _, g := range r.result {
+		if g.count > r.maxCount {
+			r.maxCount = g.count
+		}
+	}
+
+	r.traceGroups = make(map[string]int)
+	r.output = make([]goroutine, 0, len(r.result))
+
+	for _, g := range r.result {
+		if g.count == r.maxCount {
+			r.countPersistent(g)
+		} else {
+			r.temporary++
+		}
+	}
+
+	sort.Slice(r.output, func(i, j int) bool {
+		return r.output[i].traceFiltered < r.output[j].traceFiltered
+	})
+}
+
+func (r *res) countPersistent(g goroutine) {
+	r.persistent++
+
+	if r.noGroup {
+		r.output = append(r.output, g)
+	} else {
+		if _, ok := r.traceGroups[g.traceFiltered]; !ok {
+			r.output = append(r.output, g)
+		}
+	}
+	r.traceGroups[g.traceFiltered]++
+}
+
+type res struct {
+	result map[string]goroutine
+
+	maxCount    int
+	noGroup     bool
+	traceGroups map[string]int
+	output      []goroutine
+	persistent  int
+	temporary   int
 }
 
 type goroutine struct {
