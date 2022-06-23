@@ -62,7 +62,8 @@ Alternatively if you already have downloaded goroutine dumps you can provide the
 stuckroutines dump1.txt dump2.txt dump3.txt > report.txt
 ```
 
-List of goroutines is ordered by back trace path (with memory references removed) so it is diff-friendly.
+List of goroutines is ordered by count of goroutines to show the likely culprit,
+it can be also ordered by back trace path (with memory references removed) to be diff-friendly.
 
 <details>
   <summary>Sample report</summary>

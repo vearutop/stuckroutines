@@ -21,7 +21,7 @@ func main() {
 	n := flag.Int("iterations", 2, "How many reports to collect to find persisting routines")
 	delay := flag.Duration("delay", 5*time.Second, "Delay between report collections")
 	noGroup := flag.Bool("no-group", false, "Do not group goroutines by stack trace")
-	sortTrace := flag.Bool("sort-trace", false, "Sort by trace instead of count ouf goroutines")
+	sortTrace := flag.Bool("sort-trace", false, "Sort by trace instead of count of goroutines")
 	min := flag.Int("min-count", 10, "Filter traces with few goroutines")
 	ver := flag.Bool("version", false, "Print version")
 
