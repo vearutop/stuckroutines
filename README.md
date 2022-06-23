@@ -25,13 +25,17 @@ Make sure your app is instrumented with [net/pprof](https://golang.org/pkg/net/h
 ```
 Stuckroutines requires either a URL or a list of files obtained from /pprof/goroutine?debug=2
 Usage: stuckroutines [options] [...report files]
-Usage of ./bin/stuckroutines:
+Usage of stuckroutines:
   -delay duration
         Delay between report collections (default 5s)
   -iterations int
         How many reports to collect to find persisting routines (default 2)
+  -min-count int
+        Filter traces with few goroutines (default 10)
   -no-group
         Do not group goroutines by stack trace
+  -sort-trace
+        Sort by trace instead of count ouf goroutines
   -url string
         Full URL to /debug/pprof/goroutine?debug=2
   -version
