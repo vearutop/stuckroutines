@@ -21,6 +21,8 @@ func main() {
 	n := flag.Int("iterations", 2, "How many reports to collect to find persisting routines")
 	delay := flag.Duration("delay", 5*time.Second, "Delay between report collections")
 	noGroup := flag.Bool("no-group", false, "Do not group goroutines by stack trace")
+	sortTrace := flag.Bool("sort-trace", false, "Sort by trace instead of count ouf goroutines")
+	min := flag.Int("min-count", 10, "Filter traces with few goroutines")
 	ver := flag.Bool("version", false, "Print version")
 
 	usage := flag.CommandLine.Usage
@@ -60,11 +62,33 @@ func main() {
 
 	r.count()
 
+	for i, g := range r.output {
+		g.count = r.traceGroups[g.traceFiltered]
+
+		r.output[i] = g
+	}
+
+	if sortTrace != nil && *sortTrace {
+		sort.Slice(r.output, func(i, j int) bool {
+			return r.output[i].traceFiltered < r.output[j].traceFiltered
+		})
+	} else {
+		sort.Slice(r.output, func(i, j int) bool {
+			return r.output[i].count > r.output[j].count
+		})
+	}
+
 	println(r.persistent, "persistent goroutine(s) found")
 	println(r.temporary, "temporary goroutine(s) ignored")
 
 	for _, g := range r.output {
-		fmt.Println(r.traceGroups[g.traceFiltered], "goroutine(s) with similar back trace path")
+		if min != nil && *min > 0 {
+			if g.count < *min {
+				continue
+			}
+		}
+
+		fmt.Println(g.count, "goroutine(s) with similar back trace path")
 		fmt.Println(g.id, g.status)
 		fmt.Println(g.trace)
 	}
@@ -111,8 +135,8 @@ func (r *res) load(fn string) {
 
 func (r *res) count() {
 	for _, g := range r.result {
-		if g.count > r.maxCount {
-			r.maxCount = g.count
+		if g.dumps > r.maxCount {
+			r.maxCount = g.dumps
 		}
 	}
 
@@ -120,16 +144,12 @@ func (r *res) count() {
 	r.output = make([]goroutine, 0, len(r.result))
 
 	for _, g := range r.result {
-		if g.count == r.maxCount {
+		if g.dumps == r.maxCount {
 			r.countPersistent(g)
 		} else {
 			r.temporary++
 		}
 	}
-
-	sort.Slice(r.output, func(i, j int) bool {
-		return r.output[i].traceFiltered < r.output[j].traceFiltered
-	})
 }
 
 func (r *res) countPersistent(g goroutine) {
@@ -158,6 +178,7 @@ type res struct {
 
 type goroutine struct {
 	id            string
+	dumps         int
 	count         int
 	status        string
 	trace         string
@@ -176,13 +197,13 @@ func parseGoroutines(reader io.Reader, result map[string]goroutine) {
 		switch {
 		case strings.HasPrefix(line, "goroutine"):
 			pieces := strings.SplitN(line, " ", 3)
-			g.count = 1
+			g.dumps = 1
 			g.id = pieces[1]
 			g.status = pieces[2]
 			g.trace = ""
 		case len(line) == 0:
 			if gf, ok := result[g.id]; ok {
-				g.count += gf.count
+				g.dumps += gf.dumps
 			}
 
 			g.traceFiltered = zeroX.ReplaceAllString(g.trace, `0x?`)
