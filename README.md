@@ -17,6 +17,10 @@ $(go env GOPATH)/bin/stuckroutines --help
 ```
 
 Or download binary from [releases](https://github.com/vearutop/stuckroutines/releases).
+```
+wget https://github.com/vearutop/stuckroutines/releases/download/v1.1.0/linux_amd64.tar.gz && tar xf linux_amd64.tar.gz && rm linux_amd64.tar.gz
+./stuckroutines -version
+```
 
 ## Usage 
 
