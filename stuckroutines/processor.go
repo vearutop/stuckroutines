@@ -1,3 +1,4 @@
+// Package stuckroutines analyzes goroutine dumps.
 package stuckroutines
 
 import (
@@ -16,6 +17,7 @@ import (
 	"time"
 )
 
+// NewProcessor creates Processor.
 func NewProcessor() *Processor {
 	return &Processor{
 		Result: make(map[string]goroutine),
@@ -23,6 +25,7 @@ func NewProcessor() *Processor {
 	}
 }
 
+// Run invokes processing.
 func Run(f Flags) {
 	if f.URL == "" && flag.NArg() == 0 {
 		flag.Usage()
@@ -45,12 +48,14 @@ func Run(f Flags) {
 	p.Report(f)
 }
 
+// Report processes and prints currently collected dumps.
 func (p *Processor) Report(f Flags) {
 	p.Count()
 	p.PrepareOutput(f.SortTrace)
 	p.PrintResult(f.MinCount)
 }
 
+// PrintResult prints grouped traces.
 func (p *Processor) PrintResult(minCount int) {
 	_, _ = fmt.Fprintln(p.Writer, p.Persistent, "persistent goroutine(s) found")
 	_, _ = fmt.Fprintln(p.Writer, p.Temporary, "temporary goroutine(s) ignored")
@@ -68,6 +73,7 @@ func (p *Processor) PrintResult(minCount int) {
 	}
 }
 
+// PrepareOutput filters and orders traces.
 func (p *Processor) PrepareOutput(sortTrace bool) {
 	for i, g := range p.Output {
 		g.Count = p.TraceGroups[g.TraceFiltered]
@@ -86,8 +92,9 @@ func (p *Processor) PrepareOutput(sortTrace bool) {
 	}
 }
 
-func (p *Processor) FetchInternal() {
-	req, _ := http.NewRequest(http.MethodGet, "http://localhost/debug/pprof/goroutine?debug=2", nil)
+// Internal dumps goroutines of current process.
+func (p *Processor) Internal() {
+	req, _ := http.NewRequest(http.MethodGet, "http://localhost/debug/pprof/goroutine?debug=2", nil) // nolint:errcheck
 	rw := httptest.NewRecorder()
 	http.DefaultServeMux.ServeHTTP(rw, req)
 
@@ -98,6 +105,7 @@ func (p *Processor) FetchInternal() {
 	parseGoroutines(rw.Body, p.Result)
 }
 
+// Fetch downloads multiple goroutine dumps by URL.
 func (p *Processor) Fetch(n int, url string, delay time.Duration) {
 	for i := 0; i < n; i++ {
 		_, _ = fmt.Fprintln(p.Writer, "Collecting report ...")
@@ -105,6 +113,7 @@ func (p *Processor) Fetch(n int, url string, delay time.Duration) {
 		resp, err := http.Get(url)
 		if err != nil {
 			_, _ = fmt.Fprintln(p.Writer, "Failed to get report:", err.Error())
+
 			os.Exit(1)
 		}
 
@@ -113,6 +122,7 @@ func (p *Processor) Fetch(n int, url string, delay time.Duration) {
 		err = resp.Body.Close()
 		if err != nil {
 			_, _ = fmt.Fprintln(p.Writer, "Failed to close response body:", err.Error())
+
 			os.Exit(1)
 		}
 
@@ -123,6 +133,7 @@ func (p *Processor) Fetch(n int, url string, delay time.Duration) {
 	}
 }
 
+// Load adds goroutines dump from file.
 func (p *Processor) Load(fn string) {
 	f, err := os.Open(fn)
 	if err != nil {
@@ -137,6 +148,7 @@ func (p *Processor) Load(fn string) {
 	}
 }
 
+// Count counts persistent goroutines.
 func (p *Processor) Count() {
 	for _, g := range p.Result {
 		if g.dumps > p.maxCount {
@@ -169,6 +181,7 @@ func (p *Processor) countPersistent(g goroutine) {
 	p.TraceGroups[g.TraceFiltered]++
 }
 
+// Processor groups goroutine stack traces.
 type Processor struct {
 	Result map[string]goroutine
 

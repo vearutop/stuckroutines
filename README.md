@@ -151,3 +151,14 @@ created by os/signal.init.0
 
 ```
 </details>
+
+You can also use `Processor` to analyze goroutines in current runtime.
+
+```go
+p := stuckroutines.NewProcessor()
+p.Writer = out
+p.Internal() // Collect once.
+// ....
+p.Internal() // Collect again.
+p.Report(stuckroutines.Flags{}) // Report persistent.
+```

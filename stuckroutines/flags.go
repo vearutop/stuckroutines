@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Flags control Processor behavior.
 type Flags struct {
 	URL           string
 	Iterations    int
@@ -16,6 +17,7 @@ type Flags struct {
 	MinCount      int
 }
 
+// Register adds flags.
 func (f *Flags) Register() {
 	flag.StringVar(&f.URL, "url", "", "Full URL to /debug/pprof/goroutine?debug=2")
 	flag.IntVar(&f.Iterations, "iterations", 2, "How many reports to collect to find persisting routines")

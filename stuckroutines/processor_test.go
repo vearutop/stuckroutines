@@ -12,7 +12,7 @@ func TestNewProcessor(t *testing.T) {
 
 	p := stuckroutines.NewProcessor()
 	p.Writer = out
-	p.FetchInternal()
+	p.Internal()
 	p.Report(stuckroutines.Flags{})
 
 	if !bytes.Contains(out.Bytes(), []byte("persistent goroutine(s) found")) {

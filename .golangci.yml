@@ -20,10 +20,6 @@ linters-settings:
 linters:
   enable-all: true
   disable:
-    - cyclop
-    - funlen
-    - noctx
-    - gosec
     - lll
     - maligned
     - gochecknoglobals
