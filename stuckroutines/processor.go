@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	_ "net/http/pprof" // Introspecting goroutines.
 	"os"
 	"regexp"
@@ -18,6 +19,7 @@ import (
 func NewProcessor() *Processor {
 	return &Processor{
 		Result: make(map[string]goroutine),
+		Writer: os.Stdout,
 	}
 }
 
@@ -50,8 +52,8 @@ func (p *Processor) Report(f Flags) {
 }
 
 func (p *Processor) PrintResult(minCount int) {
-	fmt.Println(p.Persistent, "persistent goroutine(s) found")
-	fmt.Println(p.Temporary, "temporary goroutine(s) ignored")
+	_, _ = fmt.Fprintln(p.Writer, p.Persistent, "persistent goroutine(s) found")
+	_, _ = fmt.Fprintln(p.Writer, p.Temporary, "temporary goroutine(s) ignored")
 
 	for _, g := range p.Output {
 		if minCount > 0 {
@@ -60,9 +62,9 @@ func (p *Processor) PrintResult(minCount int) {
 			}
 		}
 
-		fmt.Println(g.Count, "goroutine(s) with similar back trace path")
-		fmt.Println(g.ID, g.Status)
-		fmt.Println(g.Trace)
+		_, _ = fmt.Fprintln(p.Writer, g.Count, "goroutine(s) with similar back trace path")
+		_, _ = fmt.Fprintln(p.Writer, g.ID, g.Status)
+		_, _ = fmt.Fprintln(p.Writer, g.Trace)
 	}
 }
 
@@ -85,36 +87,24 @@ func (p *Processor) PrepareOutput(sortTrace bool) {
 }
 
 func (p *Processor) FetchInternal() {
-	if !p.internalStarted {
-		p.internalStarted = true
+	req, _ := http.NewRequest(http.MethodGet, "http://localhost/debug/pprof/goroutine?debug=2", nil)
+	rw := httptest.NewRecorder()
+	http.DefaultServeMux.ServeHTTP(rw, req)
 
-		go func() {
-			log.Println(http.ListenAndServe("localhost:45678", nil))
-		}()
+	if rw.Code != http.StatusOK {
+		panic(fmt.Sprintf("unexpected response: %d %s", rw.Code, rw.Body.String()))
 	}
 
-	resp, err := http.Get("http://localhost:45678/debug/pprof/goroutine?debug=2")
-	if err != nil {
-		fmt.Println("Failed to get report:", err.Error())
-		os.Exit(1)
-	}
-
-	parseGoroutines(resp.Body, p.Result)
-
-	err = resp.Body.Close()
-	if err != nil {
-		fmt.Println("Failed to close response body:", err.Error())
-		os.Exit(1)
-	}
+	parseGoroutines(rw.Body, p.Result)
 }
 
 func (p *Processor) Fetch(n int, url string, delay time.Duration) {
 	for i := 0; i < n; i++ {
-		fmt.Println("Collecting report ...")
+		_, _ = fmt.Fprintln(p.Writer, "Collecting report ...")
 
 		resp, err := http.Get(url)
 		if err != nil {
-			fmt.Println("Failed to get report:", err.Error())
+			_, _ = fmt.Fprintln(p.Writer, "Failed to get report:", err.Error())
 			os.Exit(1)
 		}
 
@@ -122,12 +112,12 @@ func (p *Processor) Fetch(n int, url string, delay time.Duration) {
 
 		err = resp.Body.Close()
 		if err != nil {
-			fmt.Println("Failed to close response body:", err.Error())
+			_, _ = fmt.Fprintln(p.Writer, "Failed to close response body:", err.Error())
 			os.Exit(1)
 		}
 
 		if i < n-1 {
-			fmt.Println("Sleeping", delay.String(), "...")
+			_, _ = fmt.Fprintln(p.Writer, "Sleeping", delay.String(), "...")
 			time.Sleep(delay)
 		}
 	}
@@ -190,7 +180,7 @@ type Processor struct {
 	Temporary     int
 	KeepTemporary bool
 
-	internalStarted bool
+	Writer io.Writer
 }
 
 type goroutine struct {
