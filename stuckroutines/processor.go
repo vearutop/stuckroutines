@@ -86,6 +86,8 @@ func (p *Processor) PrepareOutput(sortTrace bool) {
 
 func (p *Processor) FetchInternal() {
 	if !p.internalStarted {
+		p.internalStarted = true
+
 		go func() {
 			log.Println(http.ListenAndServe("localhost:45678", nil))
 		}()
