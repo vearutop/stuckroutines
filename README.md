@@ -34,12 +34,14 @@ Usage of stuckroutines:
         Delay between report collections (default 5s)
   -iterations int
         How many reports to collect to find persisting routines (default 2)
+  -keep-temp
+        Keep temporary goroutines.
   -min-count int
         Filter traces with few goroutines (default 10)
   -no-group
         Do not group goroutines by stack trace
   -sort-trace
-        Sort by trace instead of count ouf goroutines
+        Sort by trace instead of count of goroutines
   -url string
         Full URL to /debug/pprof/goroutine?debug=2
   -version
@@ -149,3 +151,14 @@ created by os/signal.init.0
 
 ```
 </details>
+
+You can also use `Processor` to analyze goroutines in current runtime.
+
+```go
+p := stuckroutines.NewProcessor()
+p.Writer = out
+p.Internal() // Collect once.
+// ....
+p.Internal() // Collect again.
+p.Report(stuckroutines.Flags{}) // Report persistent.
+```

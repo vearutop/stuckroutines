@@ -55,4 +55,3 @@ issues:
         - funlen
         - dupl
       path: "_test.go"
-
