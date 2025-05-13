@@ -12,46 +12,56 @@ linters-settings:
     threshold: 100
   misspell:
     locale: US
-  unused:
-    check-exported: false
   unparam:
     check-exported: true
 
 linters:
   enable-all: true
   disable:
+    - errcheck
     - cyclop
     - funlen
     - noctx
     - gosec
+    - intrange
+    - copyloopvar
     - lll
-    - maligned
     - gochecknoglobals
-    - gomnd
     - wrapcheck
     - paralleltest
     - forbidigo
-    - exhaustivestruct
-    - interfacer # deprecated
     - forcetypeassert
-    - scopelint # deprecated
-    - ifshort # too many false positives
-    - golint # deprecated
     - varnamelen
     - tagliatelle
     - errname
     - ireturn
     - exhaustruct
     - nonamedreturns
+    - testableexamples
+    - dupword
+    - depguard
+    - tagalign
+    - mnd
+    - testifylint
+    - recvcheck
 
 issues:
   exclude-use-default: false
   exclude-rules:
     - linters:
-        - gomnd
+        - mnd
         - goconst
-        - goerr113
         - noctx
         - funlen
         - dupl
+        - unused
+        - unparam
       path: "_test.go"
+    - linters:
+        - errcheck # Error checking omitted for brevity.
+        - gosec
+      path: "example_"
+    - linters:
+        - revive
+      text: "unused-parameter: parameter"
+
