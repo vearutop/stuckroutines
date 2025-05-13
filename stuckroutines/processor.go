@@ -111,7 +111,7 @@ func (p *Processor) PrepareOutput(sortTrace bool) {
 
 // Internal dumps goroutines of current process.
 func (p *Processor) Internal() {
-	req, _ := http.NewRequest(http.MethodGet, "http://localhost/debug/pprof/goroutine?debug=2", nil) // nolint:errcheck
+	req, _ := http.NewRequest(http.MethodGet, "http://localhost/debug/pprof/goroutine?debug=2", nil) //nolint:errcheck
 	rw := httptest.NewRecorder()
 	http.DefaultServeMux.ServeHTTP(rw, req)
 
@@ -195,6 +195,7 @@ func (p *Processor) countPersistent(g goroutine) {
 			p.Output = append(p.Output, g)
 		}
 	}
+
 	p.TraceGroups[g.TraceFiltered]++
 }
 

@@ -1,3 +1,4 @@
+// Package main provides CLI tool to analyze goroutine dumps.
 package main
 
 import (
