@@ -36,6 +36,7 @@ func Run(f Flags) {
 	p := NewProcessor()
 	p.NoGroup = f.NoGroup
 	p.KeepTemporary = f.KeepTemporary
+	p.f = f
 
 	if f.URL != "" {
 		p.Fetch(f.Iterations, f.URL, f.Delay)
@@ -69,7 +70,23 @@ func (p *Processor) PrintResult(minCount int) {
 
 		_, _ = fmt.Fprintln(p.Writer, g.Count, "goroutine(s) with similar back trace path")
 		_, _ = fmt.Fprintln(p.Writer, g.ID, g.Status)
-		_, _ = fmt.Fprintln(p.Writer, g.Trace)
+
+		trc := g.Trace
+		if p.f.ShowFiltered {
+			trc = g.TraceFiltered
+		}
+
+		if p.f.TruncateTrace > 0 {
+			tr := strings.Split(trc, "\n")
+			if len(tr) > p.f.TruncateTrace {
+				tr = tr[:p.f.TruncateTrace]
+				_, _ = fmt.Fprintln(p.Writer, strings.Join(tr, "\n")+"\n")
+			} else {
+				_, _ = fmt.Fprintln(p.Writer, trc)
+			}
+		} else {
+			_, _ = fmt.Fprintln(p.Writer, trc)
+		}
 	}
 }
 
@@ -194,6 +211,8 @@ type Processor struct {
 	KeepTemporary bool
 
 	Writer io.Writer
+
+	f Flags
 }
 
 type goroutine struct {

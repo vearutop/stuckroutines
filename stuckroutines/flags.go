@@ -15,6 +15,8 @@ type Flags struct {
 	SortTrace     bool
 	KeepTemporary bool
 	MinCount      int
+	TruncateTrace int
+	ShowFiltered  bool
 }
 
 // Register adds flags.
@@ -26,6 +28,8 @@ func (f *Flags) Register() {
 	flag.BoolVar(&f.SortTrace, "sort-trace", false, "Sort by trace instead of count of goroutines")
 	flag.BoolVar(&f.KeepTemporary, "keep-temp", false, "Keep temporary goroutines.")
 	flag.IntVar(&f.MinCount, "min-count", 10, "Filter traces with few goroutines")
+	flag.IntVar(&f.TruncateTrace, "truncate-trace", 0, "Trim trace stacks to this number of lines")
+	flag.BoolVar(&f.ShowFiltered, "show-filtered", false, "Show filtered traces (better for diff)")
 
 	usage := flag.CommandLine.Usage
 	flag.CommandLine.Usage = func() {
