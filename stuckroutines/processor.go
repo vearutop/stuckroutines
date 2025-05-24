@@ -119,7 +119,7 @@ func (p *Processor) Internal() {
 		panic(fmt.Sprintf("unexpected response: %d %s", rw.Code, rw.Body.String()))
 	}
 
-	parseGoroutines(rw.Body, p.Result)
+	p.parseGoroutines(rw.Body, p.Result)
 }
 
 // Fetch downloads multiple goroutine dumps by URL.
@@ -134,7 +134,7 @@ func (p *Processor) Fetch(n int, url string, delay time.Duration) {
 			os.Exit(1)
 		}
 
-		parseGoroutines(resp.Body, p.Result)
+		p.parseGoroutines(resp.Body, p.Result)
 
 		err = resp.Body.Close()
 		if err != nil {
@@ -157,7 +157,7 @@ func (p *Processor) Load(fn string) {
 		log.Fatal(err.Error())
 	}
 
-	parseGoroutines(f, p.Result)
+	p.parseGoroutines(f, p.Result)
 
 	err = f.Close()
 	if err != nil {
@@ -227,7 +227,7 @@ type goroutine struct {
 
 var zeroX = regexp.MustCompile(`0x[a-z\d]+`)
 
-func parseGoroutines(reader io.Reader, result map[string]goroutine) {
+func (p *Processor) parseGoroutines(reader io.Reader, result map[string]goroutine) {
 	g := goroutine{}
 
 	scanner := bufio.NewScanner(reader)
@@ -247,6 +247,16 @@ func parseGoroutines(reader io.Reader, result map[string]goroutine) {
 			}
 
 			g.TraceFiltered = zeroX.ReplaceAllString(g.Trace, `0x?`)
+
+			if p.f.TruncateTrace > 0 {
+				tr := strings.Split(g.TraceFiltered, "\n")
+				if len(tr) > p.f.TruncateTrace {
+					tr = tr[:p.f.TruncateTrace]
+
+					g.TraceFiltered = strings.Join(tr, "\n") + "\n"
+				}
+			}
+
 			result[g.ID] = g
 		default:
 			g.Trace += line + "\n"
